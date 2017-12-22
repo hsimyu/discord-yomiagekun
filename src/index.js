@@ -17,24 +17,22 @@ client.on('ready', () => {
 client.on('message', message => {
     if (message.content === '/join') {
         if (message.member.voiceChannel) {
-            message.member.voiceChannel.join()
-                .then(connection => { // connectionはVoice Connectionのインスタンス
-                    message.reply('I have successfully connected to the channel!');
-                })
-                .catch(console.log);
+            message.member.voiceChannel.join().catch(console.log);
         } else {
             message.reply('You need to join a voice channel first.');
         }
     }
 
-    console.log("broadcasts = " + client.broadcasts);
-    console.log("voiceConnections = " + client.voiceConnections.values());
     if (client.voiceConnections.array().length > 0) {
-        console.log("play " + message.content);
-        const stream = voiceText.stream(message.content, { format: 'ogg' });
-        for (const connection of client.voiceConnections.values()) {
-            connection.playStream(stream);
-        }
-        console.log("played.");
+        const main_voice_connection = client.voiceConnections.array()[0];
+        console.log("mainvoiceConnections = " + main_voice_connection);
+        console.log("invoke play " + message.content);
+        playMessageAsync(main_voice_connection, message.content);
     }
 });
+
+async function playMessageAsync(connection, content) {
+    const stream = await voiceText.stream(content, { format: 'ogg' });
+    connection.playStream(stream);
+    console.log("played " + content);
+}

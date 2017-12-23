@@ -2,6 +2,7 @@ const {voice_text_api_token, discord_bot_token} = require('../src/tokens.js');
 
 // voice-text setup
 const { VoiceText } = require('voice-text');
+const { writeFileSync } = require('fs');
 const voiceText = new VoiceText(voice_text_api_token);
 
 // discord setup
@@ -26,12 +27,12 @@ process.on('SIGINT', () => {
 
 let connection = null;
 let buffer = [];
-const wait_duration_ms = 1000;
+
+const wait_duration_ms = 500;
 
 client.on('message', message => {
-    console.log("content = " + message.content);
     if (connection && message.content !== '') {
-        pushToVoiceStream(message.content);
+        playVoice(message.content);
     }
 
     if (message.content === '/join') {
@@ -46,37 +47,38 @@ client.on('message', message => {
     }
 });
 
-async function pushToVoiceStream(content) {
-    console.log("[push to voice stream]");
-    const stream = await getVoiceTextStream(content);
-    console.log("[check voice connection status]");
-
-    if (!connection.playing) {
-        console.log("[play message]");
-        playMessage(connection, stream);
+function playVoice(content) {
+    if (!(connection.speaking)) {
+        getVoiceTextBuffer(content)
+            .then(data => {
+            writeFileSync("voice.wav", data);
+            playMessageFromFile(connection, data);
+        });
     } else {
-        console.log("[push to buffer]");
-        pushToBuffer(stream);
+        pushToBuffer(content);
         setTimeout(bufferToPlayStream, wait_duration_ms);
     }
 }
 
-async function getVoiceTextStream(content) {
-    const stream = await voiceText.stream(content, { format: 'wav' });
-    return stream;
+async function getVoiceTextBuffer(content) {
+    const fetched_buffer = await voiceText.fetchBuffer(content, { format: 'wav' });
+    return fetched_buffer;
 }
 
-async function playMessage(connection, stream) {
-    connection.playStream(stream);
+function playMessageFromFile(connection, stream) {
+    const dispatcher = connection.playFile("voice.wav");
 }
 
 function bufferToPlayStream() {
-    console.log("[buffer to play stream]");
     if (buffer.length > 0) {
-        if (!connection.playing) {
-            console.log("[play buffer]");
-            const buffered_stream = buffer.shift();
-            playMessage(connection, buffered_stream);
+        if (!(connection.speaking)) {
+            console.log("[push buffer[0] to voice stream]");
+            const buffered_content = buffer.shift();
+            getVoiceTextBuffer(buffered_content)
+                .then(stream => {
+                    console.log("[play message]");
+                    playMessageFromFile(connection, stream);
+                }).catch(console.log);
         } else {
             // 再度待つ
             console.log("[re invoke bufferToPlayStream]");
@@ -85,6 +87,6 @@ function bufferToPlayStream() {
     }
 }
 
-function pushToBuffer(stream) {
-    buffer.push(stream);
+function pushToBuffer(content) {
+    buffer.push(content);
 }

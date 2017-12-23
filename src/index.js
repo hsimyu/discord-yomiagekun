@@ -2,7 +2,6 @@ const {voice_text_api_token, discord_bot_token} = require('../src/tokens.js');
 
 // voice-text setup
 const { VoiceText } = require('voice-text');
-const { writeFileSync } = require('fs');
 const voiceText = new VoiceText(voice_text_api_token);
 
 // discord setup
@@ -14,25 +13,67 @@ client.on('ready', () => {
     console.log('I am ready!');
 });
 
+let connection = null;
+let buffer = [];
+const wait_duration_ms = 1000;
+
 client.on('message', message => {
-    if (message.content === '/join') {
-        if (message.member.voiceChannel) {
-            message.member.voiceChannel.join().catch(console.log);
-        } else {
-            message.reply('You need to join a voice channel first.');
-        }
+    console.log("content = " + message.content);
+    if (connection && message.content !== '') {
+        pushToVoiceStream(message.content);
     }
 
-    if (client.voiceConnections.array().length > 0) {
-        const main_voice_connection = client.voiceConnections.array()[0];
-        console.log("mainvoiceConnections = " + main_voice_connection);
-        console.log("invoke play " + message.content);
-        playMessageAsync(main_voice_connection, message.content);
+    if (message.content === '/join') {
+        if (message.member.voiceChannel) {
+            message.member.voiceChannel.join()
+                .then(new_connection => {
+                    connection = new_connection;
+                }).catch(console.log);
+        } else {
+            message.reply('/joinコマンドはVoiceチャンネルに参加していないと使用できません.');
+        }
     }
 });
 
-async function playMessageAsync(connection, content) {
-    const stream = await voiceText.stream(content, { format: 'ogg' });
+async function pushToVoiceStream(content) {
+    console.log("[push to voice stream]");
+    const stream = await getVoiceTextStream(content);
+    console.log("[check voice connection status]");
+
+    if (!connection.playing) {
+        console.log("[play message]");
+        playMessage(connection, stream);
+    } else {
+        console.log("[push to buffer]");
+        pushToBuffer(stream);
+        setTimeout(bufferToPlayStream, wait_duration_ms);
+    }
+}
+
+async function getVoiceTextStream(content) {
+    const stream = await voiceText.stream(content, { format: 'wav' });
+    return stream;
+}
+
+async function playMessage(connection, stream) {
     connection.playStream(stream);
-    console.log("played " + content);
+}
+
+function bufferToPlayStream() {
+    console.log("[buffer to play stream]");
+    if (buffer.length > 0) {
+        if (!connection.playing) {
+            console.log("[play buffer]");
+            const buffered_stream = buffer.shift();
+            playMessage(connection, buffered_stream);
+        } else {
+            // 再度待つ
+            console.log("[re invoke bufferToPlayStream]");
+            setTimeout(bufferToPlayStream, wait_duration_ms);
+        }
+    }
+}
+
+function pushToBuffer(stream) {
+    buffer.push(stream);
 }

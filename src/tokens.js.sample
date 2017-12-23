@@ -1,0 +1,2 @@
+module.exports.voice_text_api_token = 'xxxxxxxxxxxxxxxx';
+module.exports.discord_bot_token = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';

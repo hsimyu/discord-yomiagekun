@@ -1,5 +1,10 @@
 const {voice_text_api_token, discord_bot_token} = require('../src/tokens.js');
 
+const voice_text_options = {
+    "format": "wav",
+    "speaker": "bear"
+};
+
 // voice-text setup
 const { VoiceText } = require('voice-text');
 const { writeFileSync } = require('fs');
@@ -61,7 +66,7 @@ function playVoice(content) {
 }
 
 async function getVoiceTextBuffer(content) {
-    const fetched_buffer = await voiceText.fetchBuffer(content, { format: 'wav' });
+    const fetched_buffer = await voiceText.fetchBuffer(content, voice_text_options);
     return fetched_buffer;
 }
 
@@ -75,10 +80,10 @@ function bufferToPlayStream() {
             console.log("[push buffer[0] to voice stream]");
             const buffered_content = buffer.shift();
             getVoiceTextBuffer(buffered_content)
-                .then(stream => {
-                    console.log("[play message]");
-                    playMessageFromFile(connection, stream);
-                }).catch(console.log);
+                .then(data => {
+                writeFileSync("voice.wav", data);
+                playMessageFromFile(connection, data);
+            });
         } else {
             // 再度待つ
             console.log("[re invoke bufferToPlayStream]");

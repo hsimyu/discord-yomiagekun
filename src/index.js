@@ -10,8 +10,19 @@ const client = new Discord.Client();
 client.login(discord_bot_token);
 
 client.on('ready', () => {
-    console.log('I am ready!');
+    console.log('[Ready!]');
 });
+
+// 端末上での終了処理
+process.on('SIGINT', () => {
+    if (connection) {
+        connection.disconnect();
+        console.log('[Disconnect from voice channel]');
+    }
+    console.log('[Destroy client]');
+    client.destroy();
+    process.exit(0);
+})
 
 let connection = null;
 let buffer = [];

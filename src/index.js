@@ -1,10 +1,5 @@
 const {voice_text_api_token, discord_bot_token} = require('../src/tokens.js');
 
-const voice_text_options = {
-    "format": "wav",
-    "speaker": "bear"
-};
-
 // voice-text setup
 const { VoiceText } = require('voice-text');
 const { writeFileSync } = require('fs');
@@ -15,7 +10,46 @@ const Discord = require('discord.js');
 const client = new Discord.Client();
 client.login(discord_bot_token);
 
+// file system
+const fs = require('fs');
+function fileExists(path) {
+    try {
+        fs.statSync(path);
+        return true;
+    } catch (err) {
+        if (err.code == 'ENOENT') return false;
+
+        console.error("Unhandle Error: ", err.message);
+        return false;
+    }
+}
+
+const config_path = "./config.json";
+let voice_text_options = {
+    'format': 'wav',
+    'speaker': 'hikari'
+};
+
 client.on('ready', () => {
+    if (fileExists(config_path)) {
+        let config = JSON.parse(fs.readFileSync(config_path, 'utf8'));
+
+        // default 設定を上書き
+        voice_text_options.speaker = config.speaker;
+
+        let keylist = ['pitch', 'speed', 'volume'];
+        keylist.forEach((key) => {
+            if (key in config) {
+                voice_text_options[key] = config[key];
+            }
+        });
+
+        if ('emotion' in config && config.emotion != 'none') {
+            voice_text_options.emotion = config.emotion;
+
+            if ('emotion_level' in config) voice_text_options.emotion_level = config.emotion_level;
+        }
+    }
     console.log('[Ready!]');
 });
 
@@ -27,6 +61,11 @@ process.on('SIGINT', () => {
     }
     console.log('[Destroy client]');
     client.destroy();
+
+    delete voice_text_options["format"];
+    let json_config = JSON.stringify(voice_text_options, null, '    ');
+    fs.writeFileSync(config_path, json_config);
+    console.log('[Save config]');
     process.exit(0);
 })
 
@@ -77,7 +116,6 @@ function playMessageFromFile(connection, stream) {
 function bufferToPlayStream() {
     if (buffer.length > 0) {
         if (!(connection.speaking)) {
-            console.log("[push buffer[0] to voice stream]");
             const buffered_content = buffer.shift();
             getVoiceTextBuffer(buffered_content)
                 .then(data => {
@@ -86,7 +124,6 @@ function bufferToPlayStream() {
             });
         } else {
             // 再度待つ
-            console.log("[re invoke bufferToPlayStream]");
             setTimeout(bufferToPlayStream, wait_duration_ms);
         }
     }

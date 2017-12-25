@@ -1,4 +1,5 @@
 node_modules
 src/tokens.js
+config.json
 *.wav
 *.ogg

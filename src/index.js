@@ -3,6 +3,7 @@ const {voice_text_api_token, discord_bot_token} = require('../src/tokens.js');
 // voice-text setup
 const { VoiceText } = require('voice-text');
 const { writeFileSync } = require('fs');
+const voiceTextValidator = require('../src/vt_validator.js');
 const voiceText = new VoiceText(voice_text_api_token);
 
 // discord setup
@@ -72,21 +73,39 @@ process.on('SIGINT', () => {
 let connection = null;
 let buffer = [];
 
-const wait_duration_ms = 500;
-
+// 実際のクライアントの動作
 client.on('message', message => {
-    if (connection && message.content !== '') {
-        playVoice(message.content);
-    }
+    const regexp_command = /^\/(.*)/i;
+    const regexp_mention = /^@(.*)/i;
 
-    if (message.content === '/join') {
-        if (message.member.voiceChannel) {
-            message.member.voiceChannel.join()
-                .then(new_connection => {
-                    connection = new_connection;
-                }).catch(console.log);
-        } else {
-            message.reply('/joinコマンドはVoiceチャンネルに参加していないと使用できません.');
+    if (message.content.match(regexp_command)) {
+        let command = message.content.split(' ');
+
+        if (command[0] === '/join') {
+            if (message.member.voiceChannel) {
+                message.member.voiceChannel.join()
+                    .then(new_connection => {
+                        connection = new_connection;
+                    }).catch(console.log);
+            } else {
+                message.reply('/joinコマンドはVoiceチャンネルに参加していないと使用できません.');
+            }
+        } else if (command[0] === '/change') {
+            if (command.length > 2) {
+                switch(command[1]) {
+                    case 'speaker':
+                        voice_text_options.speaker = (voiceTextValidator.isValidSpeaker(command[2])) ? command[2] : 'hikari';
+                        break;
+                }
+            } else {
+                message.reply('/change {変更するキー} {変更後の値} の形式で使用してください.');
+            }
+        }
+    } else if (message.content.match(regexp_mention)) {
+        console.log("It is mention: " + message.content);
+    } else {
+        if (connection && message.content !== '') {
+            playVoice(message.content);
         }
     }
 });
@@ -100,6 +119,7 @@ function playVoice(content) {
         });
     } else {
         pushToBuffer(content);
+        const wait_duration_ms = 500;
         setTimeout(bufferToPlayStream, wait_duration_ms);
     }
 }

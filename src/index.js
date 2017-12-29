@@ -110,6 +110,7 @@ client.on('message', message => {
     }
 });
 
+const wait_duration_ms = 500;
 function playVoice(content) {
     if (!(connection.speaking)) {
         getVoiceTextBuffer(content)
@@ -119,7 +120,6 @@ function playVoice(content) {
         });
     } else {
         pushToBuffer(content);
-        const wait_duration_ms = 500;
         setTimeout(bufferToPlayStream, wait_duration_ms);
     }
 }

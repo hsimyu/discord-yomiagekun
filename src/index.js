@@ -100,6 +100,11 @@ client.on('message', message => {
             } else {
                 message.reply('/change {変更するキー} {変更後の値} の形式で使用してください.');
             }
+        } else if (command[0] === '/leave') {
+            if (connection != null) {
+                connection.disconnect();
+                connection = null;
+            }
         }
     } else if (message.content.match(regexp_mention)) {
         console.log("It is mention: " + message.content);

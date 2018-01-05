@@ -63,10 +63,12 @@ process.on('SIGINT', () => {
     console.log('[Destroy client]');
     client.destroy();
 
-    delete voice_text_options["format"];
-    let json_config = JSON.stringify(voice_text_options, null, '    ');
+    // 変更されている可能性のあるkeyのみconfigに上書きする
+    config.speaker = voice_text_options.speaker;
+
+    let json_config = JSON.stringify(config, null, '    ');
     fs.writeFileSync(config_path, json_config);
-    console.log('[Save config]');
+    console.log('[Save config.]');
     process.exit(0);
 })
 

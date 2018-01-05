@@ -105,15 +105,32 @@ client.on('message', message => {
                 connection.disconnect();
                 connection = null;
             }
+        } else if (command[0] === '/exclude') {
+            if (command.length == 2) {
+                if (!("exclude_channels" in config)) {
+                    config["exclude_channels"] = [];
+                }
+
+                config.exclude_channels.push(command[1]);
+            } else {
+                message.reply('/exclude {読み上げを除外するチャンネル} の形式で使用してください.');
+            }
         }
     } else if (message.content.match(regexp_mention)) {
         console.log("It is mention: " + message.content);
     } else {
-        if (connection && message.content !== '') {
+        if (connection && message.content !== '' && !shouldExcludeTextChannel(config, message.channel)) {
             playVoice(message.content);
         }
     }
 });
+
+function shouldExcludeTextChannel(config, text_channel) {
+    if ("exclude_channels" in config) {
+        if (config["exclude_channels"].indexOf(text_channel) > 0) return true;
+    }
+    return false;
+}
 
 function playVoice(content) {
     if (!(connection.speaking)) {

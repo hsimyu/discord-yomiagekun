@@ -26,6 +26,7 @@ function fileExists(path) {
 }
 
 const config_path = "./config.json";
+let config = {};
 let voice_text_options = {
     'format': 'wav',
     'speaker': 'hikari'
@@ -33,7 +34,7 @@ let voice_text_options = {
 
 client.on('ready', () => {
     if (fileExists(config_path)) {
-        let config = JSON.parse(fs.readFileSync(config_path, 'utf8'));
+        config = JSON.parse(fs.readFileSync(config_path, 'utf8'));
 
         // default 設定を上書き
         voice_text_options.speaker = config.speaker;
@@ -109,17 +110,18 @@ client.on('message', message => {
             }
         } else if (command[0] === '/exclude') {
             if (command.length == 2) {
-                if (!("exclude_channels" in config)) {
-                    config["exclude_channels"] = [];
+                if (!('exclude_channels' in config)) {
+                    config['exclude_channels'] = [];
                 }
 
                 config.exclude_channels.push(command[1]);
+                message.reply(command[1] + 'チャンネルを読み上げ除外に設定しました。(除外対象: ' + config.exclude_channels.join(',') + ')');
             } else {
                 message.reply('/exclude {読み上げを除外するチャンネル} の形式で使用してください.');
             }
         }
     } else if (message.content.match(regexp_mention)) {
-        console.log("It is mention: " + message.content);
+        console.log('It is mention: ' + message.content);
     } else {
         if (connection && message.content !== '' && !shouldExcludeTextChannel(config, message.channel)) {
             playVoice(message.content);
@@ -128,8 +130,8 @@ client.on('message', message => {
 });
 
 function shouldExcludeTextChannel(config, text_channel) {
-    if ("exclude_channels" in config) {
-        if (config["exclude_channels"].indexOf(text_channel) > 0) return true;
+    if ('exclude_channels' in config) {
+        if (config['exclude_channels'].indexOf(text_channel) > 0) return true;
     }
     return false;
 }

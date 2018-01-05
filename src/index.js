@@ -110,7 +110,7 @@ client.on('message', message => {
             }
         } else if (command[0] === '/exclude') {
             if (command.length == 2) {
-                if (!('exclude_channels' in config)) {
+                if (!Array.isArray(config.exclude_channels)) {
                     config['exclude_channels'] = [];
                 }
 
@@ -118,6 +118,18 @@ client.on('message', message => {
                 message.reply(command[1] + 'チャンネルを読み上げ除外に設定しました。(除外対象: ' + config.exclude_channels.join(',') + ')');
             } else {
                 message.reply('/exclude {読み上げを除外するチャンネル} の形式で使用してください.');
+            }
+        } else if (command[0] === '/include') {
+            if (command.length == 2) {
+                if (Array.isArray(config.exclude_channels)) {
+                    config.exclude_channels = config.exclude_channels.filter((value) => {
+                        return (value !== command[1]);
+                    });
+
+                    message.reply(command[1] + 'チャンネルを読み上げるようになりました。(除外対象: ' + config.exclude_channels.join(',') + ')');
+                }
+            } else {
+                message.reply('/include {読み上げに再追加するチャンネル} の形式で使用してください.');
             }
         }
     } else if (message.content.match(regexp_mention)) {
